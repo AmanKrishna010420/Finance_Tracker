@@ -27,8 +27,8 @@ public class TransactionController {
     }
 
     @PostMapping("/computeResponse")
-    public ResponseEntity<TransactionResponse> computeResponse(User user , CreateTransactionRequest createTransactionRequest) {
-        return ResponseEntity.ok(transactionService.computeTransaction(user, createTransactionRequest));
+    public ResponseEntity<TransactionResponse> computeResponse(@RequestParam("email") String userEmail ,@RequestBody CreateTransactionRequest createTransactionRequest) {
+        return ResponseEntity.ok(transactionService.computeTransaction(userEmail, createTransactionRequest));
     }
 
     @GetMapping("/all")
