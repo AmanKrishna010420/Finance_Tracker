@@ -39,7 +39,7 @@ public class UserController {
         return ok(service.loginUser(loginDTO));
     }
 
-    @GetMapping
+    @GetMapping("/fetchByEmail")
     public ResponseEntity<UserResponse> getUserByEmail(@RequestParam String email) {
 
         return ResponseEntity.ok(service.fetchUserByEmail(email));
