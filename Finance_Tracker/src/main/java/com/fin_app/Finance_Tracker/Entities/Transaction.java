@@ -35,7 +35,6 @@ public class Transaction {
     private LocalDate transactionDate;
     private LocalTime transactionTime;
     @ManyToOne
-    @JoinColumn(name = "user_user_id")
     private User user;
 
     public User getUser() {
