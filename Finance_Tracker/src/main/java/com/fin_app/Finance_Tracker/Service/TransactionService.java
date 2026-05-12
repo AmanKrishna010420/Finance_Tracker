@@ -30,7 +30,7 @@ public class TransactionService {
     @Autowired
     private TransactionRepository transactionRepository;
 
-    public TransactionResponse computeTransaction(User user, CreateTransactionRequest createTransactionRequest) {
+    public TransactionResponse computeTransaction(String userEmail, CreateTransactionRequest createTransactionRequest) {
 
         Transaction txn = TransactionMapper.toEntity(createTransactionRequest);
 
