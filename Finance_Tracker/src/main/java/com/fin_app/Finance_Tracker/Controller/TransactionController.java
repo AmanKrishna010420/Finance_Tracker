@@ -41,6 +41,11 @@ public class TransactionController {
         return  ResponseEntity.ok(transactionService.getMonthlyExpense(userEmail));
     }
 
+    @GetMapping("/monthlyIncome")
+    public ResponseEntity<Map<Integer,Integer>> getMonthlyIncome(@RequestParam("email") String userEmail) {
+        return ResponseEntity.ok(transactionService.getMonthlyIncome(userEmail));
+    }
+
     @GetMapping("/categoryAnalytics")
     public ResponseEntity<Map<Integer,Integer>> getCategoryAnalytics(User user) {
         return ResponseEntity.ok(transactionService.getCategoryAnalytics(user));
