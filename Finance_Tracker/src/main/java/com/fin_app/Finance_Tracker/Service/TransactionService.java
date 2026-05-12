@@ -79,8 +79,8 @@ public class TransactionService {
                 ));
     }
 
-    public Map<Integer, Integer>  getCategoryAnalytics(User user){
-        List<TransactionResponse> data = getAllTransactions(user);
+    public Map<Integer, Integer>  getCategoryAnalytics(String  userEmail){
+        List<TransactionResponse> data = getAllTransactions(userEmail);
         return data.stream().filter
                 (transaction -> transaction.getTransactionType() == 0).collect
                 (Collectors.groupingBy(
