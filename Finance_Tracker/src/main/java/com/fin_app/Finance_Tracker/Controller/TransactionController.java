@@ -47,7 +47,7 @@ public class TransactionController {
     }
 
     @GetMapping("/categoryAnalytics")
-    public ResponseEntity<Map<Integer,Integer>> getCategoryAnalytics(User user) {
-        return ResponseEntity.ok(transactionService.getCategoryAnalytics(user));
+    public ResponseEntity<Map<Integer,Integer>> getCategoryAnalytics(@RequestParam("email") String userEmail) {
+        return ResponseEntity.ok(transactionService.getCategoryAnalytics(userEmail));
     }
 }
