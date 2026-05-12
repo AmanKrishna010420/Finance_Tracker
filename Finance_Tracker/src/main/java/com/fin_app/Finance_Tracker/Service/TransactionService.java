@@ -57,8 +57,8 @@ public class TransactionService {
         return transactionRepository.findByUser_UserEmail(userEmail).stream().map(TransactionMapper::toDTO).collect(Collectors.toList()) ;
     }
 
-    public Map<Integer, Integer> getMonthlyIncome(User user){
-        List<TransactionResponse> data = getAllTransactions(user);
+    public Map<Integer, Integer> getMonthlyIncome(String userEmail){
+        List<TransactionResponse> data = getAllTransactions(userEmail);
         return data.stream().filter
                 (transaction -> transaction.getTransactionType() == 1).collect
                 (Collectors.groupingBy(
