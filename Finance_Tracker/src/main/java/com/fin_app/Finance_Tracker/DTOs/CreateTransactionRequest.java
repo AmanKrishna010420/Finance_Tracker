@@ -15,7 +15,7 @@ public class CreateTransactionRequest {
         private LocalDate transactionDate;
         @PositiveOrZero
         private int transactionType;
-        @NotBlank
+        @PositiveOrZero
         private int transactionCategory;
 
     public LocalTime getTransactionTime() {
