@@ -1,0 +1,53 @@
+package com.fin_app.Finance_Tracker.Controller;
+
+import com.fin_app.Finance_Tracker.DTOs.CreateTransactionRequest;
+import com.fin_app.Finance_Tracker.DTOs.TransactionResponse;
+import com.fin_app.Finance_Tracker.Entities.User;
+import com.fin_app.Finance_Tracker.Service.TransactionService;
+import com.fin_app.Finance_Tracker.Service.UserService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@CrossOrigin("*")
+@RestController
+@RequestMapping("/transaction")
+public class TransactionController {
+
+
+    private final TransactionService transactionService;
+
+    private final UserService userService;
+
+    public  TransactionController(TransactionService transactionService, UserService userService) {
+        this.transactionService = transactionService;
+        this.userService = userService;
+    }
+
+    @PostMapping("/computeResponse")
+    public ResponseEntity<TransactionResponse> computeResponse(User user , CreateTransactionRequest createTransactionRequest) {
+        return ResponseEntity.ok(transactionService.computeTransaction(user, createTransactionRequest));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<TransactionResponse>> getTransactions(User user) {
+        return ResponseEntity.ok(transactionService.getAllTransactions(user));
+    }
+
+    @GetMapping("/monthlyIncome")
+    public ResponseEntity<Map<Integer,Integer>> getMonthlyIncome(User user) {
+        return ResponseEntity.ok(transactionService.getMonthlyIncome(user));
+    }
+
+    @GetMapping("/monthlyExpense")
+    public ResponseEntity<Map<Integer,Integer>> getMonthlyExpense(User user) {
+        return  ResponseEntity.ok(transactionService.getMonthlyExpense(user));
+    }
+
+    @GetMapping("/categoryAnalytics")
+    public ResponseEntity<Map<Integer,Integer>> getCategoryAnalytics(User user) {
+        return ResponseEntity.ok(transactionService.getCategoryAnalytics(user));
+    }
+}
