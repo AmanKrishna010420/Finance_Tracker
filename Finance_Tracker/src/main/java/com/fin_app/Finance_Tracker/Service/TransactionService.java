@@ -53,11 +53,8 @@ public class TransactionService {
 
     // Analytics Method
 
-    public List<TransactionResponse> getAllTransactions(User user){
-        return transactionRepository.findAll().stream().filter(
-                x -> x.getUser().equals(user)).map(TransactionMapper::toDTO).collect(
-                        Collectors.toList()
-        );
+    public List<TransactionResponse> getAllTransactions(String userEmail){
+        return transactionRepository.findByUser_UserEmail(userEmail).stream().map(TransactionMapper::toDTO).collect(Collectors.toList()) ;
     }
 
     public Map<Integer, Integer> getMonthlyIncome(User user){
