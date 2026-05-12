@@ -32,8 +32,8 @@ public class TransactionController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<TransactionResponse>> getTransactions(User user) {
-        return ResponseEntity.ok(transactionService.getAllTransactions(user));
+    public ResponseEntity<List<TransactionResponse>> getTransactions(@RequestParam("email") String userEmail) {
+        return ResponseEntity.ok(transactionService.getAllTransactions(userEmail));
     }
 
     @GetMapping("/monthlyIncome")
