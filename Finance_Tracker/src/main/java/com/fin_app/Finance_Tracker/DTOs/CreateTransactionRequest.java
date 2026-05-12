@@ -1,6 +1,8 @@
 package com.fin_app.Finance_Tracker.DTOs;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 
 import java.sql.Time;
 import java.time.LocalDate;
