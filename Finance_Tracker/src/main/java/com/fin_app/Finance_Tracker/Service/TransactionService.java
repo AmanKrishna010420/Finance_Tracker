@@ -33,7 +33,7 @@ public class TransactionService {
     public TransactionResponse computeTransaction(String userEmail, CreateTransactionRequest createTransactionRequest) {
 
         Transaction txn = TransactionMapper.toEntity(createTransactionRequest);
-
+        User user = userRepository.findByUserEmail(userEmail);
         if(txn.getTransactionType() == 1){
             user.setUserBalance(user.getUserBalance() + txn.getAmount());
         }
