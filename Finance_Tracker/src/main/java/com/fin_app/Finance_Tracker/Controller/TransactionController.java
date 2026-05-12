@@ -42,8 +42,8 @@ public class TransactionController {
     }
 
     @GetMapping("/monthlyExpense")
-    public ResponseEntity<Map<Integer,Integer>> getMonthlyExpense(User user) {
-        return  ResponseEntity.ok(transactionService.getMonthlyExpense(user));
+    public ResponseEntity<Map<Integer,Integer>> getMonthlyExpense(@RequestParam("email") String userEmail) {
+        return  ResponseEntity.ok(transactionService.getMonthlyExpense(userEmail));
     }
 
     @GetMapping("/categoryAnalytics")
