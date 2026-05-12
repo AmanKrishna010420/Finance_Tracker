@@ -13,7 +13,7 @@ public class CreateTransactionRequest {
         private int amount;
         private LocalTime transactionTime;
         private LocalDate transactionDate;
-        @NotBlank
+        @PositiveOrZero
         private int transactionType;
         @NotBlank
         private int transactionCategory;
