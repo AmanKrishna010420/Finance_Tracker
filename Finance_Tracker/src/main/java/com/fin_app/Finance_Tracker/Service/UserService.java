@@ -29,7 +29,7 @@ public class UserService {
         if(userRepository.findByUserEmail(userEmail) == null){
             throw new RuntimeException("User with email doesn't exists");
         }else{
-            User dbUser = userRepository.findByuserEmail(userEmail);
+            User dbUser = userRepository.findByUserEmail(userEmail);
             if(dbUser.getUserPassword().equals(userRequest.getPassword())){
                 return UserMapper.toResponse(dbUser);
             }
