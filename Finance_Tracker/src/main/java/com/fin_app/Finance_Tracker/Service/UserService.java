@@ -40,7 +40,7 @@ public class UserService {
     }
 
     public UserResponse fetchUserByEmail(String email) {
-        User user = userRepository.findByuserEmail(email);
+        User user = userRepository.findByUserEmail(email);
         return UserMapper.toResponse(user);
     }
 
