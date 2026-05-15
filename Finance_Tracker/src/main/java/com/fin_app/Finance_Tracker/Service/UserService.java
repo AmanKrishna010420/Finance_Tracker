@@ -26,7 +26,7 @@ public class UserService {
 
 
         String userEmail = userRequest.getEmail();
-        if(userRepository.findByuserEmail(userEmail) == null){
+        if(userRepository.findByUserEmail(userEmail) == null){
             throw new RuntimeException("User with email doesn't exists");
         }else{
             User dbUser = userRepository.findByuserEmail(userEmail);
