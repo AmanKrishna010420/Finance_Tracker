@@ -1,10 +1,10 @@
-import 'package:finance_tracker/models/transaction.dart';
+import 'package:finance_tracker/core/theme/theme.dart';
+import 'package:finance_tracker/providers/transaction_provider.dart';
 import 'package:finance_tracker/screens/Analytics/analytics.dart';
 import 'package:finance_tracker/screens/Dashboard/dashboard.dart';
 import 'package:finance_tracker/screens/profile/profile.dart';
-import 'package:finance_tracker/core/theme/theme.dart';
-import 'package:finance_tracker/services/dashboard_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class Transactions extends StatefulWidget {
   const Transactions({super.key});
@@ -14,24 +14,34 @@ class Transactions extends StatefulWidget {
 }
 
 class _TransactionsState extends State<Transactions> {
-  late Future<List<Transaction>> transactions;
   int currentIndex = 2;
-  @override
+
   @override
   void initState() {
     super.initState();
 
-    transactions = DashboardService().fetchTransactions().then((response) {
-      final List<dynamic> data = response.data;
+    Future.microtask(() {
+      final transactionProvider = Provider.of<TransactionProvider>(
+        context,
+        listen: false,
+      );
 
-      return data.map((txn) => Transaction.fromJson(txn)).toList();
+      transactionProvider.fetchTransactions();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final transactionProvider = Provider.of<TransactionProvider>(context);
+
+    final txnList = transactionProvider.transactions;
+
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
+
       appBar: AppBar(title: const Text('Transactions')),
+
+      /// BOTTOM NAVIGATION BAR
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
 
@@ -40,29 +50,35 @@ class _TransactionsState extends State<Transactions> {
         selectedItemColor: AppTheme.primaryColor,
 
         unselectedItemColor: Colors.grey,
+
         onTap: (index) {
           if (index == 0) {
             Navigator.pushReplacement(
               context,
+
               MaterialPageRoute(builder: (context) => const Dashboard()),
             );
           } else if (index == 1) {
             Navigator.pushReplacement(
               context,
+
               MaterialPageRoute(builder: (context) => const Analytics()),
             );
           } else if (index == 2) {
             Navigator.pushReplacement(
               context,
+
               MaterialPageRoute(builder: (context) => const Transactions()),
             );
           } else if (index == 3) {
             Navigator.pushReplacement(
               context,
+
               MaterialPageRoute(builder: (context) => const Profile()),
             );
           }
         },
+
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_rounded),
@@ -89,63 +105,44 @@ class _TransactionsState extends State<Transactions> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: FutureBuilder<List<Transaction>>(
-            future: transactions,
 
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+      body: transactionProvider.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : txnList.isEmpty
+          ? const Center(child: Text("No transactions found"))
+          : Padding(
+              padding: const EdgeInsets.all(16),
 
-              if (snapshot.hasError) {
-                return const Text("Error loading transactions");
-              }
+              child: SingleChildScrollView(
+                child: Column(
+                  children: txnList.map((txn) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
 
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Text("No transactions found");
-              }
+                      child: _buildTransactionTile(
+                        context,
 
-              final txnList = snapshot.data!;
+                        getCategoryIcon(txn.transactionCategory),
 
-              txnList.sort(
-                (a, b) => b.transactionDate!.compareTo(a.transactionDate!),
-              );
+                        txn.categoryText,
 
-              final recentTransactions = txnList.toList();
+                        "${txn.transactionDate} • ${txn.transactionTime}",
 
-              return Column(
-                children: recentTransactions.map((txn) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
+                        "₹ ${txn.amount}",
 
-                    child: _buildTransactionTile(
-                      context,
-
-                      getCategoryIcon(txn.transactionCategory),
-
-                      txn.categoryText,
-
-                      "${txn.transactionDate} • ${txn.transactionTime}",
-
-                      "₹ ${txn.amount}",
-
-                      txn.transactionType == 1
-                          ? AppTheme.incomeColor
-                          : AppTheme.expenseColor,
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-        ),
-      ),
+                        txn.transactionType == 1
+                            ? AppTheme.incomeColor
+                            : AppTheme.expenseColor,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
     );
   }
 
+  /// CATEGORY ICONS
   IconData getCategoryIcon(int? category) {
     switch (category) {
       case 1:
@@ -171,6 +168,7 @@ class _TransactionsState extends State<Transactions> {
     }
   }
 
+  /// TRANSACTION TILE
   Widget _buildTransactionTile(
     BuildContext context,
 
@@ -185,53 +183,59 @@ class _TransactionsState extends State<Transactions> {
     Color amountColor,
   ) {
     return Card(
-      color: Theme.of(context).cardColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
+      elevation: 1.5,
 
-            decoration: BoxDecoration(
-              color: amountColor.withOpacity(0.12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
 
-              borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+
+        child: Row(
+          children: [
+            /// ICON
+            Container(
+              padding: const EdgeInsets.all(16),
+
+              decoration: BoxDecoration(
+                color: amountColor.withOpacity(0.12),
+
+                borderRadius: BorderRadius.circular(16),
+              ),
+
+              child: Icon(icon, color: amountColor, size: 28),
             ),
 
-            child: Icon(icon, color: amountColor),
-          ),
+            const SizedBox(width: 14),
 
-          const SizedBox(width: 14),
+            /// TITLE + SUBTITLE
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.titleMedium),
 
-              children: [
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 6),
 
-                const SizedBox(height: 4),
-
-                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-              ],
+                  Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+                ],
+              ),
             ),
-          ),
 
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Text(
+            /// AMOUNT
+            Text(
               amount,
 
               style: TextStyle(
                 color: amountColor,
 
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.bold,
 
                 fontSize: 16,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

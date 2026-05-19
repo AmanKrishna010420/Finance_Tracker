@@ -1,11 +1,11 @@
-import 'package:dio/dio.dart';
 import 'package:finance_tracker/core/theme/theme.dart';
+import 'package:finance_tracker/providers/transaction_provider.dart';
 import 'package:finance_tracker/screens/Dashboard/dashboard.dart';
 import 'package:finance_tracker/screens/Transactions/transactions.dart';
 import 'package:finance_tracker/screens/profile/profile.dart';
-import 'package:finance_tracker/services/dashboard_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class Analytics extends StatefulWidget {
   const Analytics({super.key});
@@ -16,25 +16,6 @@ class Analytics extends StatefulWidget {
 
 class _AnalyticsState extends State<Analytics> {
   int currentIndex = 1;
-
-  late Future<Response> monthlyIncomeFuture;
-
-  late Future<Response> monthlyExpenseFuture;
-
-  late Future<Response> categoryAnalyticsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-
-    final service = DashboardService();
-
-    monthlyIncomeFuture = service.fetchIncome();
-
-    monthlyExpenseFuture = service.fetchExpense();
-
-    categoryAnalyticsFuture = service.fetchCategoryAnalytics();
-  }
 
   final List<Color> pieChartColors = [
     Colors.orange,
@@ -70,12 +51,39 @@ class _AnalyticsState extends State<Analytics> {
   };
 
   @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() {
+      final transactionProvider = Provider.of<TransactionProvider>(
+        context,
+        listen: false,
+      );
+
+      transactionProvider.fetchIncome();
+
+      transactionProvider.fetchExpense();
+
+      transactionProvider.fetchCategoryAnalytics();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final transactionProvider = Provider.of<TransactionProvider>(context);
+
+    final income = transactionProvider.income;
+
+    final expense = transactionProvider.expense;
+
+    final categoryAnalytics = transactionProvider.categoryAnalytics;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
 
-      appBar: AppBar(title: const Text('Analytics')),
+      appBar: AppBar(title: const Text("Analytics")),
 
+      /// BOTTOM NAVIGATION BAR
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
 
@@ -140,400 +148,291 @@ class _AnalyticsState extends State<Analytics> {
         ],
       ),
 
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: transactionProvider.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
 
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
 
-          children: [
-            Text(
-              "Financial Insights 📊",
+                children: [
+                  Text(
+                    "Financial Insights 📊",
 
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
 
-            const SizedBox(height: 8),
+                  const SizedBox(height: 8),
 
-            Text(
-              "Track your income and expenses",
+                  Text(
+                    "Track your income and expenses",
 
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
 
-            const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-            /// ======================
-            /// MONTHLY BAR CHART
-            /// ======================
-            Card(
-              elevation: 2,
+                  /// MONTHLY OVERVIEW CARD
+                  Card(
+                    elevation: 2,
 
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-
-                  children: [
-                    Text(
-                      "Monthly Overview",
-
-                      style: Theme.of(context).textTheme.titleLarge,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
                     ),
 
-                    const SizedBox(height: 6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
 
-                    Text(
-                      "Income vs Expense",
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
 
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
+                        children: [
+                          Text(
+                            "Monthly Overview",
 
-                    const SizedBox(height: 20),
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
 
-                    FutureBuilder(
-                      future: Future.wait([
-                        monthlyIncomeFuture,
+                          const SizedBox(height: 6),
 
-                        monthlyExpenseFuture,
-                      ]),
+                          Text(
+                            "Income vs Expense",
 
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const SizedBox(
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          SizedBox(
                             height: 260,
 
-                            child: Center(child: CircularProgressIndicator()),
-                          );
-                        }
+                            child: BarChart(
+                              BarChartData(
+                                alignment: BarChartAlignment.spaceAround,
 
-                        if (snapshot.hasError) {
-                          return SizedBox(
-                            height: 260,
+                                maxY:
+                                    (income > expense ? income : expense)
+                                        .toDouble() +
+                                    5000,
 
-                            child: Center(
-                              child: Text(snapshot.error.toString()),
-                            ),
-                          );
-                        }
+                                gridData: FlGridData(
+                                  show: true,
 
-                        final incomeData =
-                            snapshot.data![0].data as Map<String, dynamic>;
+                                  drawVerticalLine: false,
+                                ),
 
-                        final expenseData =
-                            snapshot.data![1].data as Map<String, dynamic>;
+                                borderData: FlBorderData(show: false),
 
-                        final months = incomeData.keys.toList();
-
-                        return SizedBox(
-                          height: 260,
-
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-
-                            child: SizedBox(
-                              width: months.length * 120,
-
-                              child: BarChart(
-                                BarChartData(
-                                  alignment: BarChartAlignment.spaceAround,
-
-                                  maxY: 60000,
-
-                                  /// TOOLTIP
-                                  barTouchData: BarTouchData(
-                                    touchTooltipData: BarTouchTooltipData(
-                                      tooltipBorderRadius:
-                                          BorderRadius.circular(6),
-
-                                      tooltipPadding: const EdgeInsets.all(10),
-
-                                      getTooltipItem:
-                                          (group, groupIndex, rod, rodIndex) {
-                                            return BarTooltipItem(
-                                              "₹ ${rod.toY.toStringAsFixed(0)}",
-
-                                              const TextStyle(
-                                                color: Colors.white,
-
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            );
-                                          },
-                                    ),
+                                titlesData: FlTitlesData(
+                                  topTitles: AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false),
                                   ),
 
-                                  gridData: FlGridData(
-                                    show: true,
-
-                                    drawVerticalLine: false,
-
-                                    horizontalInterval: 10000,
+                                  rightTitles: AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false),
                                   ),
 
-                                  borderData: FlBorderData(show: false),
+                                  bottomTitles: AxisTitles(
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
 
-                                  titlesData: FlTitlesData(
-                                    topTitles: AxisTitles(
-                                      sideTitles: SideTitles(showTitles: false),
+                                      getTitlesWidget: (value, meta) {
+                                        if (value == 0) {
+                                          return const Text("Income");
+                                        }
+
+                                        return const Text("Expense");
+                                      },
                                     ),
+                                  ),
+                                ),
 
-                                    rightTitles: AxisTitles(
-                                      sideTitles: SideTitles(showTitles: false),
-                                    ),
+                                barGroups: [
+                                  BarChartGroupData(
+                                    x: 0,
 
-                                    leftTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                        reservedSize: 42,
+                                    barRods: [
+                                      BarChartRodData(
+                                        toY: income.toDouble(),
 
-                                        showTitles: true,
+                                        width: 36,
+
+                                        color: AppTheme.incomeColor,
+
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
-                                    ),
+                                    ],
+                                  ),
 
-                                    /// MONTHS
-                                    bottomTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                        showTitles: true,
+                                  BarChartGroupData(
+                                    x: 1,
 
-                                        reservedSize: 34,
+                                    barRods: [
+                                      BarChartRodData(
+                                        toY: expense.toDouble(),
 
-                                        getTitlesWidget: (value, meta) {
-                                          final index = value.toInt();
+                                        width: 36,
 
-                                          return Padding(
-                                            padding: const EdgeInsets.only(
-                                              top: 12,
-                                            ),
+                                        color: AppTheme.expenseColor,
 
-                                            child: Text(
-                                              monthNames[months[index]] ?? "",
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
-                                              style: const TextStyle(
-                                                fontSize: 12,
+                  const SizedBox(height: 20),
 
-                                                fontWeight: FontWeight.w500,
-                                              ),
+                  /// PIE CHART CARD
+                  Card(
+                    elevation: 2,
+
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+
+                        children: [
+                          Text(
+                            "Expense Categories",
+
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+
+                          const SizedBox(height: 6),
+
+                          Text(
+                            "Category wise expense distribution",
+
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+
+                          const SizedBox(height: 18),
+
+                          if (categoryAnalytics.isEmpty)
+                            const SizedBox(
+                              height: 240,
+
+                              child: Center(
+                                child: Text("No analytics available"),
+                              ),
+                            )
+                          else
+                            Column(
+                              children: [
+                                SizedBox(
+                                  height: 220,
+
+                                  child: PieChart(
+                                    PieChartData(
+                                      sectionsSpace: 3,
+
+                                      centerSpaceRadius: 34,
+
+                                      sections: List.generate(
+                                        categoryAnalytics.keys.length,
+
+                                        (index) {
+                                          final key = categoryAnalytics.keys
+                                              .elementAt(index);
+
+                                          return PieChartSectionData(
+                                            value: categoryAnalytics[key]
+                                                .toDouble(),
+
+                                            color:
+                                                pieChartColors[index %
+                                                    pieChartColors.length],
+
+                                            radius: 62,
+
+                                            title: "${categoryAnalytics[key]}",
+
+                                            titleStyle: const TextStyle(
+                                              color: Colors.white,
+
+                                              fontWeight: FontWeight.bold,
+
+                                              fontSize: 11,
                                             ),
                                           );
                                         },
                                       ),
                                     ),
                                   ),
+                                ),
 
-                                  /// BARS
-                                  barGroups: List.generate(months.length, (
-                                    index,
-                                  ) {
-                                    final month = months[index];
+                                const SizedBox(height: 16),
 
-                                    final income = incomeData[month].toDouble();
+                                Wrap(
+                                  spacing: 14,
 
-                                    final expense = expenseData[month]
-                                        .toDouble();
+                                  runSpacing: 10,
 
-                                    return BarChartGroupData(
-                                      x: index,
+                                  children: List.generate(
+                                    categoryAnalytics.keys.length,
 
-                                      barsSpace: 8,
+                                    (index) {
+                                      final key = categoryAnalytics.keys
+                                          .elementAt(index);
 
-                                      barRods: [
-                                        /// INCOME
-                                        BarChartRodData(
-                                          toY: income,
+                                      return Row(
+                                        mainAxisSize: MainAxisSize.min,
 
-                                          width: 18,
+                                        children: [
+                                          Container(
+                                            width: 14,
 
-                                          borderRadius: BorderRadius.circular(
-                                            6,
+                                            height: 14,
+
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  pieChartColors[index %
+                                                      pieChartColors.length],
+
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
                                           ),
 
-                                          color: AppTheme.incomeColor,
-                                        ),
+                                          const SizedBox(width: 6),
 
-                                        /// EXPENSE
-                                        BarChartRodData(
-                                          toY: expense,
+                                          Text(
+                                            categoryNames[key] ?? "",
 
-                                          width: 18,
+                                            style: const TextStyle(
+                                              fontSize: 12,
 
-                                          borderRadius: BorderRadius.circular(
-                                            6,
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
-
-                                          color: AppTheme.expenseColor,
-                                        ),
-                                      ],
-                                    );
-                                  }),
+                                        ],
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ),
-                        );
-                      },
+                        ],
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            /// ======================
-            /// PIE CHART
-            /// ======================
-            Card(
-              elevation: 2,
-
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-
-                  children: [
-                    Text(
-                      "Expense Categories",
-
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    Text(
-                      "Category wise expense distribution",
-
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    FutureBuilder(
-                      future: categoryAnalyticsFuture,
-
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const SizedBox(
-                            height: 240,
-
-                            child: Center(child: CircularProgressIndicator()),
-                          );
-                        }
-
-                        if (snapshot.hasError) {
-                          return SizedBox(
-                            height: 240,
-
-                            child: Center(
-                              child: Text(snapshot.error.toString()),
-                            ),
-                          );
-                        }
-
-                        final data =
-                            snapshot.data!.data as Map<String, dynamic>;
-
-                        final keys = data.keys.toList();
-
-                        return Column(
-                          children: [
-                            SizedBox(
-                              height: 220,
-
-                              child: PieChart(
-                                PieChartData(
-                                  sectionsSpace: 3,
-
-                                  centerSpaceRadius: 34,
-
-                                  sections: List.generate(keys.length, (index) {
-                                    final key = keys[index];
-
-                                    return PieChartSectionData(
-                                      value: data[key].toDouble(),
-
-                                      color: pieChartColors[index],
-
-                                      radius: 62,
-
-                                      title: "${data[key]}",
-
-                                      titleStyle: const TextStyle(
-                                        color: Colors.white,
-
-                                        fontWeight: FontWeight.bold,
-
-                                        fontSize: 11,
-                                      ),
-                                    );
-                                  }),
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 16),
-
-                            Wrap(
-                              spacing: 14,
-
-                              runSpacing: 10,
-
-                              children: List.generate(keys.length, (index) {
-                                final key = keys[index];
-
-                                return Row(
-                                  mainAxisSize: MainAxisSize.min,
-
-                                  children: [
-                                    Container(
-                                      width: 14,
-
-                                      height: 14,
-
-                                      decoration: BoxDecoration(
-                                        color: pieChartColors[index],
-
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                    ),
-
-                                    const SizedBox(width: 6),
-
-                                    Text(
-                                      categoryNames[key] ?? "",
-
-                                      style: const TextStyle(
-                                        fontSize: 12,
-
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

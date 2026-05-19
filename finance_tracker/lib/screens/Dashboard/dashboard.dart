@@ -1,13 +1,12 @@
 import 'package:finance_tracker/core/theme/theme.dart';
-import 'package:finance_tracker/models/transaction.dart';
-import 'package:finance_tracker/models/user.dart';
+import 'package:finance_tracker/providers/auth_provider.dart';
+import 'package:finance_tracker/providers/transaction_provider.dart';
 import 'package:finance_tracker/screens/Analytics/analytics.dart';
 import 'package:finance_tracker/screens/Transactions/transactions.dart';
 import 'package:finance_tracker/screens/auth/login_screen.dart';
 import 'package:finance_tracker/screens/profile/profile.dart';
-import 'package:finance_tracker/services/dashboard_service.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -17,36 +16,42 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
-  late Future<User> user;
   int currentIndex = 0;
-  late Future<List<Transaction>> transactions;
 
   @override
   void initState() {
     super.initState();
 
-    refreshDashboard();
-  }
+    Future.microtask(() {
+      final transactionProvider = Provider.of<TransactionProvider>(
+        context,
+        listen: false,
+      );
 
-  /// REFRESH DASHBOARD
-  void refreshDashboard() {
-    final dashboardService = DashboardService();
+      transactionProvider.fetchTransactions();
 
-    setState(() {
-      user = dashboardService.fetchLoginUser().then((response) {
-        return User.fromJson(response.data);
-      });
+      transactionProvider.fetchIncome();
 
-      transactions = dashboardService.fetchTransactions().then((response) {
-        final List<dynamic> data = response.data;
+      transactionProvider.fetchExpense();
 
-        return data.map((txn) => Transaction.fromJson(txn)).toList();
-      });
+      transactionProvider.fetchCategoryAnalytics();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+
+    final transactionProvider = Provider.of<TransactionProvider>(context);
+
+    final userData = authProvider.currentUser;
+
+    final txnList = transactionProvider.transactions;
+
+    if (transactionProvider.isLoading && txnList.isEmpty) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
 
@@ -64,21 +69,25 @@ class _DashboardState extends State<Dashboard> {
           if (index == 0) {
             Navigator.pushReplacement(
               context,
+
               MaterialPageRoute(builder: (context) => const Dashboard()),
             );
           } else if (index == 1) {
             Navigator.pushReplacement(
               context,
+
               MaterialPageRoute(builder: (context) => const Analytics()),
             );
           } else if (index == 2) {
             Navigator.pushReplacement(
               context,
+
               MaterialPageRoute(builder: (context) => const Transactions()),
             );
           } else if (index == 3) {
             Navigator.pushReplacement(
               context,
+
               MaterialPageRoute(builder: (context) => const Profile()),
             );
           }
@@ -111,340 +120,270 @@ class _DashboardState extends State<Dashboard> {
         ],
       ),
 
-      body: FutureBuilder<User>(
-        future: user,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
 
-        builder: (context, userSnapshot) {
-          /// LOADING
-          if (userSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+            child: Column(
+              children: [
+                /// PROFILE STACK
+                Stack(
+                  clipBehavior: Clip.none,
 
-          /// ERROR
-          if (userSnapshot.hasError) {
-            return Center(child: Text("Error: ${userSnapshot.error}"));
-          }
-
-          /// NO DATA
-          if (!userSnapshot.hasData) {
-            return const Center(child: Text("No user data found"));
-          }
-
-          final userData = userSnapshot.data!;
-
-          return SafeArea(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-
-                child: Column(
                   children: [
-                    /// PROFILE STACK
-                    Stack(
-                      clipBehavior: Clip.none,
-
-                      children: [
-                        /// PROFILE CARD
-                        Card(
-                          margin: const EdgeInsets.only(top: 20),
-
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-
-                              children: [
-                                const SizedBox(height: 12),
-
-                                /// TOP SECTION
-                                Row(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 38,
-
-                                      backgroundColor: AppTheme.primaryColor,
-
-                                      child: const Icon(
-                                        Icons.person,
-
-                                        color: Colors.white,
-
-                                        size: 36,
-                                      ),
-                                    ),
-
-                                    const SizedBox(width: 18),
-
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-
-                                        children: [
-                                          Text(
-                                            "Hello, ${userData.firstName ?? ''} 👋",
-
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.headlineMedium,
-                                          ),
-
-                                          const SizedBox(height: 6),
-
-                                          Text(
-                                            userData.email ?? "",
-
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.bodyMedium,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-
-                                const SizedBox(height: 30),
-
-                                const Divider(),
-
-                                const SizedBox(height: 24),
-
-                                /// BALANCE
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-
-                                  children: [
-                                    Text(
-                                      "Current Balance",
-
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium,
-                                    ),
-
-                                    const SizedBox(height: 8),
-
-                                    Text(
-                                      "₹ ${userData.balance ?? 0}",
-
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.headlineMedium,
-                                    ),
-                                  ],
-                                ),
-
-                                const SizedBox(height: 24),
-
-                                /// ACTION BUTTONS
-                                Row(
-                                  children: [
-                                    /// ADD INCOME
-                                    Expanded(
-                                      child: ElevatedButton.icon(
-                                        onPressed: () {
-                                          showAddIncomeSheet();
-                                        },
-
-                                        icon: const Icon(
-                                          Icons.add_circle_outline,
-                                        ),
-
-                                        label: const Text("Add Income"),
-
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppTheme.incomeColor,
-
-                                          foregroundColor: Colors.white,
-
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 14,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-
-                                    const SizedBox(width: 12),
-
-                                    /// ADD EXPENSE
-                                    Expanded(
-                                      child: ElevatedButton.icon(
-                                        onPressed: () {
-                                          showAddExpenseSheet();
-                                        },
-
-                                        icon: const Icon(
-                                          Icons.remove_circle_outline,
-                                        ),
-
-                                        label: const Text("Add Expense"),
-
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              AppTheme.expenseColor,
-
-                                          foregroundColor: Colors.white,
-
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 14,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        /// LOGOUT BUTTON
-                        Positioned(
-                          top: 0,
-
-                          right: 12,
-
-                          child: IconButton(
-                            onPressed: () async {
-                              final prefs =
-                                  await SharedPreferences.getInstance();
-
-                              await prefs.remove("userEmail");
-
-                              Navigator.pushReplacement(
-                                context,
-
-                                MaterialPageRoute(
-                                  builder: (context) => const LoginScreen(),
-                                ),
-                              );
-                            },
-
-                            icon: const Icon(Icons.logout),
-
-                            style: IconButton.styleFrom(
-                              backgroundColor: AppTheme.primaryColor,
-
-                              foregroundColor: Colors.white,
-
-                              padding: const EdgeInsets.all(14),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    /// TRANSACTION CARD
+                    /// PROFILE CARD
                     Card(
+                      margin: const EdgeInsets.only(top: 20),
+
                       child: Padding(
-                        padding: const EdgeInsets.all(18),
+                        padding: const EdgeInsets.all(24),
 
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
 
                           children: [
-                            /// HEADER
+                            const SizedBox(height: 12),
+
+                            /// TOP SECTION
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
                               children: [
-                                Text(
-                                  "Recent Transactions",
+                                CircleAvatar(
+                                  radius: 38,
 
-                                  style: Theme.of(context).textTheme.titleLarge,
+                                  backgroundColor: AppTheme.primaryColor,
+
+                                  child: const Icon(
+                                    Icons.person,
+
+                                    color: Colors.white,
+
+                                    size: 36,
+                                  ),
                                 ),
 
-                                TextButton(
-                                  onPressed: () {},
+                                const SizedBox(width: 18),
 
-                                  child: const Text("View All"),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+
+                                    children: [
+                                      Text(
+                                        "Hello, ${userData?.firstName ?? ''} 👋",
+
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.headlineMedium,
+                                      ),
+
+                                      const SizedBox(height: 6),
+
+                                      Text(
+                                        userData?.email ?? "",
+
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyMedium,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
 
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 30),
 
-                            /// TRANSACTIONS
-                            FutureBuilder<List<Transaction>>(
-                              future: transactions,
+                            const Divider(),
 
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return const Center(
-                                    child: CircularProgressIndicator(),
-                                  );
-                                }
+                            const SizedBox(height: 24),
 
-                                if (snapshot.hasError) {
-                                  return const Text(
-                                    "Error loading transactions",
-                                  );
-                                }
+                            /// BALANCE
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
 
-                                if (!snapshot.hasData ||
-                                    snapshot.data!.isEmpty) {
-                                  return const Text("No transactions found");
-                                }
+                              children: [
+                                Text(
+                                  "Monthly Income",
 
-                                final txnList = snapshot.data!;
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
 
-                                txnList.sort(
-                                  (a, b) => b.transactionDate!.compareTo(
-                                    a.transactionDate!,
+                                const SizedBox(height: 8),
+
+                                Text(
+                                  "₹ ${transactionProvider.income}",
+
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.headlineMedium,
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            /// ACTION BUTTONS
+                            Row(
+                              children: [
+                                /// ADD INCOME
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      showAddIncomeSheet();
+                                    },
+
+                                    icon: const Icon(Icons.add_circle_outline),
+
+                                    label: const Text("Add Income"),
+
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.incomeColor,
+
+                                      foregroundColor: Colors.white,
+
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                    ),
                                   ),
-                                );
+                                ),
 
-                                final recentTransactions = txnList
-                                    .take(5)
-                                    .toList();
+                                const SizedBox(width: 12),
 
-                                return Column(
-                                  children: recentTransactions.map((txn) {
-                                    return Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 10,
+                                /// ADD EXPENSE
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      showAddExpenseSheet();
+                                    },
+
+                                    icon: const Icon(
+                                      Icons.remove_circle_outline,
+                                    ),
+
+                                    label: const Text("Add Expense"),
+
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.expenseColor,
+
+                                      foregroundColor: Colors.white,
+
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
                                       ),
-
-                                      child: _buildTransactionTile(
-                                        context,
-
-                                        getCategoryIcon(
-                                          txn.transactionCategory,
-                                        ),
-
-                                        txn.categoryText,
-
-                                        "${txn.transactionDate} • ${txn.transactionTime}",
-
-                                        "₹ ${txn.amount}",
-
-                                        txn.transactionType == 1
-                                            ? AppTheme.incomeColor
-                                            : AppTheme.expenseColor,
-                                      ),
-                                    );
-                                  }).toList(),
-                                );
-                              },
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
                     ),
+
+                    /// LOGOUT BUTTON
+                    Positioned(
+                      top: 0,
+
+                      right: 12,
+
+                      child: IconButton(
+                        onPressed: () async {
+                          await authProvider.logout();
+
+                          if (!mounted) return;
+
+                          Navigator.pushReplacement(
+                            context,
+
+                            MaterialPageRoute(
+                              builder: (context) => const LoginScreen(),
+                            ),
+                          );
+                        },
+
+                        icon: const Icon(Icons.logout),
+
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppTheme.primaryColor,
+
+                          foregroundColor: Colors.white,
+
+                          padding: const EdgeInsets.all(14),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-              ),
+
+                const SizedBox(height: 18),
+
+                /// TRANSACTION CARD
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+
+                      children: [
+                        /// HEADER
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+                          children: [
+                            Text(
+                              "Recent Transactions",
+
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+
+                            TextButton(
+                              onPressed: () {},
+
+                              child: const Text("View All"),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        if (txnList.isEmpty)
+                          const Text("No transactions found")
+                        else
+                          Column(
+                            children: txnList.take(5).map((txn) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+
+                                child: _buildTransactionTile(
+                                  context,
+
+                                  getCategoryIcon(txn.transactionCategory),
+
+                                  txn.categoryText,
+
+                                  "${txn.transactionDate} • ${txn.transactionTime}",
+
+                                  "₹ ${txn.amount}",
+
+                                  txn.transactionType == 1
+                                      ? AppTheme.incomeColor
+                                      : AppTheme.expenseColor,
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
@@ -484,49 +423,23 @@ class _DashboardState extends State<Dashboard> {
 
       isScrollControlled: true,
 
-      backgroundColor: Colors.white,
-
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-
       builder: (context) {
         return Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 24,
-
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
+          padding: const EdgeInsets.all(20),
 
           child: Column(
             mainAxisSize: MainAxisSize.min,
 
-            crossAxisAlignment: CrossAxisAlignment.start,
-
             children: [
-              Text(
-                "Add Income",
-
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-
-              const SizedBox(height: 20),
-
               TextField(
                 controller: amountController,
 
                 keyboardType: TextInputType.number,
 
-                decoration: InputDecoration(
-                  labelText: "Amount",
-
-                  prefixIcon: const Icon(Icons.currency_rupee),
-                ),
+                decoration: const InputDecoration(labelText: "Amount"),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               SizedBox(
                 width: double.infinity,
@@ -539,7 +452,13 @@ class _DashboardState extends State<Dashboard> {
                       return;
                     }
 
-                    await DashboardService().createTransaction(
+                    final transactionProvider =
+                        Provider.of<TransactionProvider>(
+                          context,
+                          listen: false,
+                        );
+
+                    await transactionProvider.createTransaction(
                       amount: amount,
 
                       transactionType: 1,
@@ -547,18 +466,10 @@ class _DashboardState extends State<Dashboard> {
                       transactionCategory: 0,
                     );
 
-                    if (mounted) {
-                      Navigator.pop(context);
+                    if (!mounted) return;
 
-                      refreshDashboard();
-                    }
+                    Navigator.pop(context);
                   },
-
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.incomeColor,
-
-                    foregroundColor: Colors.white,
-                  ),
 
                   child: const Text("Add Income"),
                 ),
@@ -581,56 +492,28 @@ class _DashboardState extends State<Dashboard> {
 
       isScrollControlled: true,
 
-      backgroundColor: Colors.white,
-
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 24,
-
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
+              padding: const EdgeInsets.all(20),
 
               child: Column(
                 mainAxisSize: MainAxisSize.min,
 
-                crossAxisAlignment: CrossAxisAlignment.start,
-
                 children: [
-                  Text(
-                    "Add Expense",
-
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-
-                  const SizedBox(height: 20),
-
                   TextField(
                     controller: amountController,
 
                     keyboardType: TextInputType.number,
 
-                    decoration: InputDecoration(
-                      labelText: "Amount",
-
-                      prefixIcon: const Icon(Icons.currency_rupee),
-                    ),
+                    decoration: const InputDecoration(labelText: "Amount"),
                   ),
 
                   const SizedBox(height: 20),
 
                   DropdownButtonFormField<int>(
-                    value: selectedCategory,
-
-                    decoration: const InputDecoration(labelText: "Category"),
+                    initialValue: selectedCategory,
 
                     items: const [
                       DropdownMenuItem(value: 1, child: Text("Food")),
@@ -653,7 +536,7 @@ class _DashboardState extends State<Dashboard> {
                     },
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
                   SizedBox(
                     width: double.infinity,
@@ -666,7 +549,13 @@ class _DashboardState extends State<Dashboard> {
                           return;
                         }
 
-                        await DashboardService().createTransaction(
+                        final transactionProvider =
+                            Provider.of<TransactionProvider>(
+                              context,
+                              listen: false,
+                            );
+
+                        await transactionProvider.createTransaction(
                           amount: amount,
 
                           transactionType: 0,
@@ -674,18 +563,10 @@ class _DashboardState extends State<Dashboard> {
                           transactionCategory: selectedCategory,
                         );
 
-                        if (mounted) {
-                          Navigator.pop(context);
+                        if (!mounted) return;
 
-                          refreshDashboard();
-                        }
+                        Navigator.pop(context);
                       },
-
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.expenseColor,
-
-                        foregroundColor: Colors.white,
-                      ),
 
                       child: const Text("Add Expense"),
                     ),

@@ -1,11 +1,10 @@
-import 'package:dio/dio.dart';
 import 'package:finance_tracker/core/theme/theme.dart';
-import 'package:finance_tracker/models/user.dart';
+import 'package:finance_tracker/providers/auth_provider.dart';
 import 'package:finance_tracker/screens/Analytics/analytics.dart';
 import 'package:finance_tracker/screens/Dashboard/dashboard.dart';
 import 'package:finance_tracker/screens/Transactions/transactions.dart';
-import 'package:finance_tracker/services/dashboard_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -17,22 +16,22 @@ class Profile extends StatefulWidget {
 class _ProfileState extends State<Profile> {
   int currentIndex = 3;
 
-  late Future<Response> userFuture;
-
-  @override
-  void initState() {
-    super.initState();
-
-    userFuture = DashboardService().fetchLoginUser();
-  }
-
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+
+    final user = authProvider.currentUser;
+
+    if (user == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
 
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: const Text("Profile")),
 
+      /// BOTTOM NAVIGATION BAR
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
 
@@ -97,272 +96,256 @@ class _ProfileState extends State<Profile> {
         ],
       ),
 
-      body: FutureBuilder(
-        future: userFuture,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
 
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+        child: Column(
+          children: [
+            /// PROFILE CARD
+            Container(
+              width: double.infinity,
 
-          if (snapshot.hasError) {
-            return Center(child: Text(snapshot.error.toString()));
-          }
+              padding: const EdgeInsets.all(24),
 
-          final user = User.fromJson(snapshot.data!.data);
+              decoration: BoxDecoration(
+                color: Colors.white,
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+                borderRadius: BorderRadius.circular(24),
 
-            child: Column(
-              children: [
-                /// PROFILE CARD
-                Container(
-                  width: double.infinity,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
 
-                  padding: const EdgeInsets.all(24),
+                    blurRadius: 14,
 
-                  decoration: BoxDecoration(
-                    color: Colors.white,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
 
-                    borderRadius: BorderRadius.circular(24),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 52,
 
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                    backgroundColor: AppTheme.primaryColor,
 
-                        blurRadius: 14,
+                    child: Text(
+                      "${user.firstName?[0] ?? ""}${user.lastName?[0] ?? ""}",
 
-                        offset: const Offset(0, 6),
+                      style: const TextStyle(
+                        color: Colors.white,
+
+                        fontSize: 28,
+
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
+                    ),
                   ),
 
-                  child: Column(
-                    children: [
-                      CircleAvatar(
-                        radius: 52,
+                  const SizedBox(height: 18),
 
-                        backgroundColor: AppTheme.primaryColor,
+                  Text(
+                    "${user.firstName ?? ""} ${user.lastName ?? ""}",
 
-                        child: Text(
-                          "${user.firstName?[0] ?? ""}${user.lastName?[0] ?? ""}",
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
 
-                          style: const TextStyle(
-                            color: Colors.white,
+                  const SizedBox(height: 6),
 
-                            fontSize: 28,
+                  Text(
+                    user.email ?? "",
 
-                            fontWeight: FontWeight.bold,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            /// BALANCE CARD
+            Container(
+              width: double.infinity,
+
+              padding: const EdgeInsets.all(20),
+
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryColor,
+
+                    AppTheme.primaryColor.withOpacity(0.8),
+                  ],
+                ),
+
+                borderRadius: BorderRadius.circular(22),
+              ),
+
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+
+                children: [
+                  const Text(
+                    "Current Balance",
+
+                    style: TextStyle(color: Colors.white70, fontSize: 15),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Text(
+                    "₹ ${user.balance ?? 0}",
+
+                    style: const TextStyle(
+                      color: Colors.white,
+
+                      fontSize: 32,
+
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            /// ACCOUNT DETAILS
+            Container(
+              width: double.infinity,
+
+              padding: const EdgeInsets.all(20),
+
+              decoration: BoxDecoration(
+                color: Colors.white,
+
+                borderRadius: BorderRadius.circular(22),
+              ),
+
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+
+                children: [
+                  Text(
+                    "Account Details",
+
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  _buildDetailTile(
+                    icon: Icons.person,
+
+                    title: "First Name",
+
+                    value: user.firstName ?? "",
+                  ),
+
+                  _buildDetailTile(
+                    icon: Icons.person_outline,
+
+                    title: "Last Name",
+
+                    value: user.lastName ?? "",
+                  ),
+
+                  _buildDetailTile(
+                    icon: Icons.email_outlined,
+
+                    title: "Email",
+
+                    value: user.email ?? "",
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            /// BANKS
+            Container(
+              width: double.infinity,
+
+              padding: const EdgeInsets.all(20),
+
+              decoration: BoxDecoration(
+                color: Colors.white,
+
+                borderRadius: BorderRadius.circular(22),
+              ),
+
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+
+                children: [
+                  Text(
+                    "Linked Banks",
+
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  Wrap(
+                    spacing: 12,
+
+                    runSpacing: 12,
+
+                    children: user.banks!.map((bank) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+
+                          vertical: 12,
+                        ),
+
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withOpacity(0.08),
+
+                          borderRadius: BorderRadius.circular(30),
+
+                          border: Border.all(
+                            color: AppTheme.primaryColor.withOpacity(0.2),
                           ),
                         ),
-                      ),
 
-                      const SizedBox(height: 18),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
 
-                      Text(
-                        "${user.firstName ?? ""} ${user.lastName ?? ""}",
+                          children: [
+                            Icon(
+                              Icons.account_balance,
 
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
+                              size: 18,
 
-                      const SizedBox(height: 6),
-
-                      Text(
-                        user.email ?? "",
-
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                /// BALANCE CARD
-                Container(
-                  width: double.infinity,
-
-                  padding: const EdgeInsets.all(20),
-
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppTheme.primaryColor,
-
-                        AppTheme.primaryColor.withOpacity(0.8),
-                      ],
-                    ),
-
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-
-                    children: [
-                      const Text(
-                        "Current Balance",
-
-                        style: TextStyle(color: Colors.white70, fontSize: 15),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      Text(
-                        "₹ ${user.balance ?? 0}",
-
-                        style: const TextStyle(
-                          color: Colors.white,
-
-                          fontSize: 32,
-
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                /// ACCOUNT DETAILS
-                Container(
-                  width: double.infinity,
-
-                  padding: const EdgeInsets.all(20),
-
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-
-                    children: [
-                      Text(
-                        "Account Details",
-
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-
-                      const SizedBox(height: 18),
-
-                      _buildDetailTile(
-                        icon: Icons.person,
-
-                        title: "First Name",
-
-                        value: user.firstName ?? "",
-                      ),
-
-                      _buildDetailTile(
-                        icon: Icons.person_outline,
-
-                        title: "Last Name",
-
-                        value: user.lastName ?? "",
-                      ),
-
-                      _buildDetailTile(
-                        icon: Icons.email_outlined,
-
-                        title: "Email",
-
-                        value: user.email ?? "",
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                /// BANKS
-                Container(
-                  width: double.infinity,
-
-                  padding: const EdgeInsets.all(20),
-
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-
-                    children: [
-                      Text(
-                        "Linked Banks",
-
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-
-                      const SizedBox(height: 18),
-
-                      Wrap(
-                        spacing: 12,
-
-                        runSpacing: 12,
-
-                        children: user.banks!.map((bank) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-
-                              vertical: 12,
+                              color: AppTheme.primaryColor,
                             ),
 
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryColor.withOpacity(0.08),
+                            const SizedBox(width: 8),
 
-                              borderRadius: BorderRadius.circular(30),
+                            Text(
+                              bank,
 
-                              border: Border.all(
-                                color: AppTheme.primaryColor.withOpacity(0.2),
+                              style: TextStyle(
+                                color: AppTheme.primaryColor,
+
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-
-                              children: [
-                                Icon(
-                                  Icons.account_balance,
-
-                                  size: 18,
-
-                                  color: AppTheme.primaryColor,
-                                ),
-
-                                const SizedBox(width: 8),
-
-                                Text(
-                                  bank,
-
-                                  style: TextStyle(
-                                    color: AppTheme.primaryColor,
-
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
+                          ],
+                        ),
+                      );
+                    }).toList(),
                   ),
-                ),
-
-                const SizedBox(height: 30),
-              ],
+                ],
+              ),
             ),
-          );
-        },
+
+            const SizedBox(height: 30),
+          ],
+        ),
       ),
     );
   }

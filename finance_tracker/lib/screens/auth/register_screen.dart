@@ -1,7 +1,8 @@
+import 'package:finance_tracker/providers/auth_provider.dart';
 import 'package:finance_tracker/screens/Dashboard/dashboard.dart';
 import 'package:finance_tracker/services/auth_service.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -61,8 +62,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               content: Text("Please enter your First name"),
                             ),
                           );
-                          return null;
+                          return "Enter Your First Name";
                         }
+                        return null;
                       },
                       controller: firstNameController,
                       decoration: InputDecoration(
@@ -80,8 +82,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               content: Text("Please enter your last name"),
                             ),
                           );
-                          return null;
+                          return "Enter Last name";
                         }
+                        return null;
                       },
                       controller: lastNameController,
                       decoration: InputDecoration(
@@ -99,8 +102,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               content: Text("Please enter your email Id"),
                             ),
                           );
-                          return null;
+                          return "Enter Email Id";
                         }
+                        return null;
                       },
                       controller: emailController,
                       decoration: InputDecoration(
@@ -127,8 +131,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             );
                           }
-                          return null;
+                          return "Enter your password";
                         }
+                        return null;
                       },
                       controller: passwordController,
                       decoration: InputDecoration(
@@ -147,7 +152,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           );
                         }
-                        return null;
+                        return "Enter Your Username";
                       },
                       controller: usernameController,
                       decoration: InputDecoration(
@@ -166,7 +171,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           );
                         }
-                        return null;
+                        return "Enter your banks";
                       },
                       controller: banksController,
                       decoration: InputDecoration(
@@ -187,7 +192,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           );
                         }
-                        return null;
+                        return "Add Income";
                       },
                       controller: balanceController,
                       decoration: InputDecoration(
@@ -198,34 +203,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 10),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         try {
-                          authService
-                              .register(
-                                firstName: firstNameController.text,
-                                lastName: lastNameController.text,
-                                email: emailController.text,
-                                password: passwordController.text,
-                                username: usernameController.text,
-                                banks: banksController.text,
-                                balance: int.parse(balanceController.text),
-                              )
-                              .then((response) async {
-                                final prefs =
-                                    await SharedPreferences.getInstance();
-                                prefs.setString("email", emailController.text);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Registration successful!"),
-                                  ),
-                                );
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => Dashboard(),
-                                  ),
-                                );
-                              });
+                          if (!formKey.currentState!.validate()) {
+                            return;
+                          }
+                          final authProvider = Provider.of<AuthProvider>(
+                            context,
+                            listen: false,
+                          );
+                          final success = authProvider.register(
+                            firstName: firstNameController.text.trim(),
+                            lastName: lastNameController.text.trim(),
+                            email: emailController.text.trim(),
+                            password: passwordController.text.trim(),
+                            username: usernameController.text.trim(),
+                            banks: banksController.text.trim(),
+                            balance: int.parse(balanceController.text.trim()),
+                          );
+                          if (await success) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (_) => Dashboard()),
+                            );
+                          }
                         } catch (e) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(

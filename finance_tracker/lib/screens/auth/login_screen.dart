@@ -1,8 +1,8 @@
+import 'package:finance_tracker/providers/auth_provider.dart';
 import 'package:finance_tracker/screens/Dashboard/dashboard.dart';
 import 'package:finance_tracker/screens/auth/register_screen.dart';
-import 'package:finance_tracker/services/auth_service.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,9 +15,7 @@ class _LoginScreen extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final formKey = GlobalKey<FormState>();
-  final AuthService authService = AuthService();
   bool isObscure = true;
-  bool isLoading = false;
 
   @override
   void dispose() {
@@ -28,6 +26,7 @@ class _LoginScreen extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
@@ -57,7 +56,7 @@ class _LoginScreen extends State<LoginScreen> {
                           return "Please enter a valid email";
                         }
 
-                        return null;
+                        return "Enter your email";
                       },
                       controller: emailController,
                       decoration: InputDecoration(
@@ -98,38 +97,26 @@ class _LoginScreen extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () {
-                        if (formKey.currentState!.validate()) {
-                          authService
-                              .login(
-                                email: emailController.text,
-                                password: passwordController.text,
-                              )
-                              .then((response) async {
-                                final prefs =
-                                    await SharedPreferences.getInstance();
-                                await prefs.setString(
-                                  "email",
-                                  emailController.text,
-                                );
+                      onPressed: authProvider.isLoading
+                          ? null
+                          : () async {
+                              if (!formKey.currentState!.validate()) return;
+                              final success = await authProvider.login(
+                                email: emailController.text.trim(),
+                                password: passwordController.text.trim(),
+                              );
+
+                              if (!mounted) return;
+
+                              if (success) {
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => Dashboard(),
+                                    builder: (_) => Dashboard(),
                                   ),
                                 );
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("Login successful!")),
-                                );
-                              })
-                              .catchError((error) {
-                                print(error);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("Login failed!")),
-                                );
-                              });
-                        }
-                      },
+                              }
+                            },
                       child: const Text("Login"),
                     ),
                     const SizedBox(height: 25),
@@ -142,7 +129,7 @@ class _LoginScreen extends State<LoginScreen> {
                         ),
                         TextButton(
                           onPressed: () {
-                            Navigator.push(
+                            Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => const RegisterScreen(),
