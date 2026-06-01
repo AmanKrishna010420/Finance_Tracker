@@ -1,5 +1,6 @@
 import 'package:finance_tracker/core/theme/theme.dart';
 import 'package:finance_tracker/providers/transaction_provider.dart';
+// import 'package:finance_tracker/screens/Analytics/analytics.dart';
 import 'package:finance_tracker/screens/Dashboard/dashboard.dart';
 import 'package:finance_tracker/screens/Transactions/transactions.dart';
 import 'package:finance_tracker/screens/profile/profile.dart';
@@ -26,21 +27,6 @@ class _AnalyticsState extends State<Analytics> {
     Colors.teal,
   ];
 
-  final Map<String, String> monthNames = {
-    "1": "Jan",
-    "2": "Feb",
-    "3": "Mar",
-    "4": "Apr",
-    "5": "May",
-    "6": "Jun",
-    "7": "Jul",
-    "8": "Aug",
-    "9": "Sep",
-    "10": "Oct",
-    "11": "Nov",
-    "12": "Dec",
-  };
-
   final Map<String, String> categoryNames = {
     "1": "Food",
     "2": "Fuel",
@@ -54,17 +40,17 @@ class _AnalyticsState extends State<Analytics> {
   void initState() {
     super.initState();
 
-    Future.microtask(() {
+    Future.microtask(() async {
       final transactionProvider = Provider.of<TransactionProvider>(
         context,
         listen: false,
       );
 
-      transactionProvider.fetchIncome();
+      await transactionProvider.fetchMonthlyIncome();
 
-      transactionProvider.fetchExpense();
+      await transactionProvider.fetchMonthlyExpense();
 
-      transactionProvider.fetchCategoryAnalytics();
+      await transactionProvider.fetchCategoryAnalytics();
     });
   }
 
@@ -72,18 +58,26 @@ class _AnalyticsState extends State<Analytics> {
   Widget build(BuildContext context) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
 
-    final income = transactionProvider.income;
+    final monthlyIncome = transactionProvider.monthlyIncome;
 
-    final expense = transactionProvider.expense;
+    final monthlyExpense = transactionProvider.monthlyExpense;
 
     final categoryAnalytics = transactionProvider.categoryAnalytics;
+
+    final List<int> months = monthlyIncome.keys.toList()..sort();
+
+    final maxValue = [...monthlyIncome.values, ...monthlyExpense.values].isEmpty
+        ? 1000.0
+        : ([...monthlyIncome.values, ...monthlyExpense.values]
+                  .map((e) => (e as num).toDouble())
+                  .reduce((a, b) => a > b ? a : b)) +
+              5000;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
 
       appBar: AppBar(title: const Text("Analytics")),
 
-      /// BOTTOM NAVIGATION BAR
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
 
@@ -97,26 +91,28 @@ class _AnalyticsState extends State<Analytics> {
           if (index == 0) {
             Navigator.pushReplacement(
               context,
-
-              MaterialPageRoute(builder: (context) => const Dashboard()),
+              MaterialPageRoute(builder: (_) => const Dashboard()),
             );
-          } else if (index == 1) {
+          }
+
+          if (index == 1) {
             Navigator.pushReplacement(
               context,
-
-              MaterialPageRoute(builder: (context) => const Analytics()),
+              MaterialPageRoute(builder: (_) => const Analytics()),
             );
-          } else if (index == 2) {
+          }
+
+          if (index == 2) {
             Navigator.pushReplacement(
               context,
-
-              MaterialPageRoute(builder: (context) => const Transactions()),
+              MaterialPageRoute(builder: (_) => const Transactions()),
             );
-          } else if (index == 3) {
+          }
+
+          if (index == 3) {
             Navigator.pushReplacement(
               context,
-
-              MaterialPageRoute(builder: (context) => const Profile()),
+              MaterialPageRoute(builder: (_) => const Profile()),
             );
           }
         },
@@ -124,25 +120,21 @@ class _AnalyticsState extends State<Analytics> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_rounded),
-
             label: "Home",
           ),
 
           BottomNavigationBarItem(
             icon: Icon(Icons.bar_chart_rounded),
-
             label: "Analytics",
           ),
 
           BottomNavigationBarItem(
             icon: Icon(Icons.receipt_long_rounded),
-
             label: "Transactions",
           ),
 
           BottomNavigationBarItem(
             icon: Icon(Icons.person_rounded),
-
             label: "Profile",
           ),
         ],
@@ -159,21 +151,19 @@ class _AnalyticsState extends State<Analytics> {
                 children: [
                   Text(
                     "Financial Insights 📊",
-
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
 
                   const SizedBox(height: 8),
 
                   Text(
-                    "Track your income and expenses",
-
+                    "Track your monthly income and expenses",
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
 
                   const SizedBox(height: 20),
 
-                  /// MONTHLY OVERVIEW CARD
+                  /// BAR CHART CARD
                   Card(
                     elevation: 2,
 
@@ -182,7 +172,7 @@ class _AnalyticsState extends State<Analytics> {
                     ),
 
                     child: Padding(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(16),
 
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,85 +192,129 @@ class _AnalyticsState extends State<Analytics> {
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
 
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 24),
 
                           SizedBox(
-                            height: 260,
+                            height: 300,
 
-                            child: BarChart(
-                              BarChartData(
-                                alignment: BarChartAlignment.spaceAround,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
 
-                                maxY:
-                                    (income > expense ? income : expense)
-                                        .toDouble() +
-                                    5000,
+                              child: SizedBox(
+                                width: MediaQuery.of(context).size.width - 70,
 
-                                gridData: FlGridData(
-                                  show: true,
+                                child: BarChart(
+                                  BarChartData(
+                                    alignment: BarChartAlignment.spaceAround,
 
-                                  drawVerticalLine: false,
-                                ),
+                                    maxY: maxValue,
 
-                                borderData: FlBorderData(show: false),
+                                    gridData: FlGridData(
+                                      show: true,
 
-                                titlesData: FlTitlesData(
-                                  topTitles: AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false),
-                                  ),
-
-                                  rightTitles: AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false),
-                                  ),
-
-                                  bottomTitles: AxisTitles(
-                                    sideTitles: SideTitles(
-                                      showTitles: true,
-
-                                      getTitlesWidget: (value, meta) {
-                                        if (value == 0) {
-                                          return const Text("Income");
-                                        }
-
-                                        return const Text("Expense");
-                                      },
+                                      drawVerticalLine: false,
                                     ),
+
+                                    borderData: FlBorderData(show: false),
+
+                                    titlesData: FlTitlesData(
+                                      topTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: false,
+                                        ),
+                                      ),
+
+                                      rightTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: false,
+                                        ),
+                                      ),
+
+                                      bottomTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: true,
+
+                                          reservedSize: 45,
+
+                                          getTitlesWidget: (value, meta) {
+                                            const monthNames = {
+                                              1: "Jan",
+                                              2: "Feb",
+                                              3: "Mar",
+                                              4: "Apr",
+                                              5: "May",
+                                              6: "Jun",
+                                              7: "Jul",
+                                              8: "Aug",
+                                              9: "Sep",
+                                              10: "Oct",
+                                              11: "Nov",
+                                              12: "Dec",
+                                            };
+
+                                            return Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 8,
+                                              ),
+
+                                              child: Text(
+                                                monthNames[value.toInt()] ?? "",
+
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+
+                                    barGroups: months.map((month) {
+                                      final incomeValue =
+                                          ((monthlyIncome[month] ?? 0) as num)
+                                              .toDouble();
+
+                                      final expenseValue =
+                                          ((monthlyExpense[month] ?? 0) as num)
+                                              .toDouble();
+
+                                      return BarChartGroupData(
+                                        x: month,
+
+                                        barsSpace: 6,
+
+                                        barRods: [
+                                          BarChartRodData(
+                                            toY: incomeValue,
+
+                                            width: 20,
+
+                                            color: AppTheme.incomeColor,
+
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                          ),
+
+                                          BarChartRodData(
+                                            toY: expenseValue,
+
+                                            width: 20,
+
+                                            color: AppTheme.expenseColor,
+
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    }).toList(),
                                   ),
                                 ),
-
-                                barGroups: [
-                                  BarChartGroupData(
-                                    x: 0,
-
-                                    barRods: [
-                                      BarChartRodData(
-                                        toY: income.toDouble(),
-
-                                        width: 36,
-
-                                        color: AppTheme.incomeColor,
-
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ],
-                                  ),
-
-                                  BarChartGroupData(
-                                    x: 1,
-
-                                    barRods: [
-                                      BarChartRodData(
-                                        toY: expense.toDouble(),
-
-                                        width: 36,
-
-                                        color: AppTheme.expenseColor,
-
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ],
-                                  ),
-                                ],
                               ),
                             ),
                           ),
@@ -300,7 +334,7 @@ class _AnalyticsState extends State<Analytics> {
                     ),
 
                     child: Padding(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(16),
 
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,112 +354,115 @@ class _AnalyticsState extends State<Analytics> {
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
 
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 20),
 
-                          if (categoryAnalytics.isEmpty)
-                            const SizedBox(
-                              height: 240,
-
-                              child: Center(
-                                child: Text("No analytics available"),
-                              ),
-                            )
-                          else
-                            Column(
-                              children: [
-                                SizedBox(
+                          categoryAnalytics.isEmpty
+                              ? const SizedBox(
                                   height: 220,
 
-                                  child: PieChart(
-                                    PieChartData(
-                                      sectionsSpace: 3,
+                                  child: Center(
+                                    child: Text("No analytics available"),
+                                  ),
+                                )
+                              : Column(
+                                  children: [
+                                    SizedBox(
+                                      height: 220,
 
-                                      centerSpaceRadius: 34,
+                                      child: PieChart(
+                                        PieChartData(
+                                          sectionsSpace: 3,
 
-                                      sections: List.generate(
+                                          centerSpaceRadius: 34,
+
+                                          sections: List.generate(
+                                            categoryAnalytics.keys.length,
+
+                                            (index) {
+                                              final key = categoryAnalytics.keys
+                                                  .elementAt(index);
+
+                                              return PieChartSectionData(
+                                                value:
+                                                    (categoryAnalytics[key]
+                                                            as num)
+                                                        .toDouble(),
+
+                                                color:
+                                                    pieChartColors[index %
+                                                        pieChartColors.length],
+
+                                                radius: 62,
+
+                                                title:
+                                                    "${categoryAnalytics[key]}",
+
+                                                titleStyle: const TextStyle(
+                                                  color: Colors.white,
+
+                                                  fontWeight: FontWeight.bold,
+
+                                                  fontSize: 11,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 18),
+
+                                    Wrap(
+                                      spacing: 14,
+
+                                      runSpacing: 10,
+
+                                      children: List.generate(
                                         categoryAnalytics.keys.length,
 
                                         (index) {
                                           final key = categoryAnalytics.keys
                                               .elementAt(index);
 
-                                          return PieChartSectionData(
-                                            value: categoryAnalytics[key]
-                                                .toDouble(),
+                                          return Row(
+                                            mainAxisSize: MainAxisSize.min,
 
-                                            color:
-                                                pieChartColors[index %
-                                                    pieChartColors.length],
+                                            children: [
+                                              Container(
+                                                width: 14,
 
-                                            radius: 62,
+                                                height: 14,
 
-                                            title: "${categoryAnalytics[key]}",
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      pieChartColors[index %
+                                                          pieChartColors
+                                                              .length],
 
-                                            titleStyle: const TextStyle(
-                                              color: Colors.white,
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                              ),
 
-                                              fontWeight: FontWeight.bold,
+                                              const SizedBox(width: 6),
 
-                                              fontSize: 11,
-                                            ),
+                                              Text(
+                                                categoryNames[key] ?? "",
+
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
                                           );
                                         },
                                       ),
                                     ),
-                                  ),
+                                  ],
                                 ),
-
-                                const SizedBox(height: 16),
-
-                                Wrap(
-                                  spacing: 14,
-
-                                  runSpacing: 10,
-
-                                  children: List.generate(
-                                    categoryAnalytics.keys.length,
-
-                                    (index) {
-                                      final key = categoryAnalytics.keys
-                                          .elementAt(index);
-
-                                      return Row(
-                                        mainAxisSize: MainAxisSize.min,
-
-                                        children: [
-                                          Container(
-                                            width: 14,
-
-                                            height: 14,
-
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  pieChartColors[index %
-                                                      pieChartColors.length],
-
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                          ),
-
-                                          const SizedBox(width: 6),
-
-                                          Text(
-                                            categoryNames[key] ?? "",
-
-                                            style: const TextStyle(
-                                              fontSize: 12,
-
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
                         ],
                       ),
                     ),

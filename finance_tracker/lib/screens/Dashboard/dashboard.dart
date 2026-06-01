@@ -200,24 +200,54 @@ class _DashboardState extends State<Dashboard> {
                             const SizedBox(height: 24),
 
                             /// BALANCE
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                Text(
-                                  "Monthly Income",
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
 
-                                  style: Theme.of(context).textTheme.bodyMedium,
+                                  children: [
+                                    Text(
+                                      "Total Income",
+
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium,
+                                    ),
+
+                                    const SizedBox(height: 8),
+
+                                    Text(
+                                      "₹ ${transactionProvider.income}",
+
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.headlineMedium,
+                                    ),
+                                  ],
                                 ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
 
-                                const SizedBox(height: 8),
+                                  children: [
+                                    Text(
+                                      "Total Expense",
 
-                                Text(
-                                  "₹ ${transactionProvider.income}",
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium,
+                                    ),
 
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.headlineMedium,
+                                    const SizedBox(height: 8),
+
+                                    Text(
+                                      "₹ ${transactionProvider.expense}",
+
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.headlineMedium,
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -448,7 +478,10 @@ class _DashboardState extends State<Dashboard> {
                   onPressed: () async {
                     final amount = int.tryParse(amountController.text);
 
-                    if (amount == null) {
+                    if (amount == null || amount <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Enter valid amount")),
+                      );
                       return;
                     }
 
@@ -464,6 +497,9 @@ class _DashboardState extends State<Dashboard> {
                       transactionType: 1,
 
                       transactionCategory: 0,
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Income Added")),
                     );
 
                     if (!mounted) return;
@@ -545,7 +581,10 @@ class _DashboardState extends State<Dashboard> {
                       onPressed: () async {
                         final amount = int.tryParse(amountController.text);
 
-                        if (amount == null) {
+                        if (amount == null || amount <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Enter valid amount")),
+                          );
                           return;
                         }
 
@@ -561,6 +600,9 @@ class _DashboardState extends State<Dashboard> {
                           transactionType: 0,
 
                           transactionCategory: selectedCategory,
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Expense Added")),
                         );
 
                         if (!mounted) return;

@@ -51,12 +51,10 @@ class _LoginScreen extends State<LoginScreen> {
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return "Please enter your email";
-                        }
-                        if (!value.contains("@")) {
+                        } else if (!value.contains("@")) {
                           return "Please enter a valid email";
                         }
-
-                        return "Enter your email";
+                        return null;
                       },
                       controller: emailController,
                       decoration: InputDecoration(
@@ -101,11 +99,12 @@ class _LoginScreen extends State<LoginScreen> {
                           ? null
                           : () async {
                               if (!formKey.currentState!.validate()) return;
+                              print("API Call");
                               final success = await authProvider.login(
                                 email: emailController.text.trim(),
                                 password: passwordController.text.trim(),
                               );
-
+                              print("Login  Success");
                               if (!mounted) return;
 
                               if (success) {
@@ -117,7 +116,9 @@ class _LoginScreen extends State<LoginScreen> {
                                 );
                               }
                             },
-                      child: const Text("Login"),
+                      child: authProvider.isLoading
+                          ? const CircularProgressIndicator()
+                          : const Text("Login"),
                     ),
                     const SizedBox(height: 25),
                     Row(

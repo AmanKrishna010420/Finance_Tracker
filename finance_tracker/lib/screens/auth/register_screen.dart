@@ -1,5 +1,6 @@
 import 'package:finance_tracker/providers/auth_provider.dart';
 import 'package:finance_tracker/screens/Dashboard/dashboard.dart';
+import 'package:finance_tracker/screens/auth/login_screen.dart';
 import 'package:finance_tracker/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -102,7 +103,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               content: Text("Please enter your email Id"),
                             ),
                           );
-                          return "Enter Email Id";
                         }
                         return null;
                       },
@@ -122,16 +122,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               content: Text("Please enter your password"),
                             ),
                           );
-                          if ((value as String).length < 6) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  "Password must be at least 6 characters",
-                                ),
+                        }
+                        if ((value as String).length < 6) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                "Password must be at least 6 characters",
                               ),
-                            );
-                          }
-                          return "Enter your password";
+                            ),
+                          );
                         }
                         return null;
                       },
@@ -152,7 +151,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           );
                         }
-                        return "Enter Your Username";
+                        return null;
                       },
                       controller: usernameController,
                       decoration: InputDecoration(
@@ -171,7 +170,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           );
                         }
-                        return "Enter your banks";
+                        return null;
                       },
                       controller: banksController,
                       decoration: InputDecoration(
@@ -192,7 +191,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           );
                         }
-                        return "Add Income";
+                        return null;
                       },
                       controller: balanceController,
                       decoration: InputDecoration(
@@ -240,7 +239,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     TextButton(
                       onPressed: () {
-                        Navigator.pop(context);
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => LoginScreen()),
+                        );
                       },
                       child: const Text("Already have an account? Login"),
                     ),
