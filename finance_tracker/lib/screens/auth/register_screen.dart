@@ -1,5 +1,5 @@
 import 'package:finance_tracker/providers/auth_provider.dart';
-import 'package:finance_tracker/screens/Dashboard/dashboard.dart';
+
 import 'package:finance_tracker/screens/auth/login_screen.dart';
 import 'package:finance_tracker/services/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -203,10 +203,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 10),
                     ElevatedButton(
                       onPressed: () async {
+                        debugPrint("Register Button Pressed");
                         try {
                           if (!formKey.currentState!.validate()) {
                             return;
                           }
+                          debugPrint("API Call For Auth Provider");
                           final authProvider = Provider.of<AuthProvider>(
                             context,
                             listen: false,
@@ -220,10 +222,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             banks: banksController.text.trim(),
                             balance: int.parse(balanceController.text.trim()),
                           );
+                          debugPrint("Success Value: $success");
                           if (await success) {
+                            debugPrint(
+                              "Registration successful, navigating to Login Page",
+                            );
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (_) => Dashboard()),
+                              MaterialPageRoute(builder: (_) => LoginScreen()),
                             );
                           }
                         } catch (e) {

@@ -99,15 +99,16 @@ class _LoginScreen extends State<LoginScreen> {
                           ? null
                           : () async {
                               if (!formKey.currentState!.validate()) return;
-                              print("API Call");
+                              debugPrint("API Call + Login Button Pressed");
                               final success = await authProvider.login(
                                 email: emailController.text.trim(),
                                 password: passwordController.text.trim(),
                               );
-                              print("Login  Success");
+                              debugPrint("Success Value: $success");
                               if (!mounted) return;
 
                               if (success) {
+                                debugPrint("Navigating to Dashboard");
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
@@ -115,6 +116,7 @@ class _LoginScreen extends State<LoginScreen> {
                                   ),
                                 );
                               }
+                              debugPrint("Navigation Attempted");
                             },
                       child: authProvider.isLoading
                           ? const CircularProgressIndicator()

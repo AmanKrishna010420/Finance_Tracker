@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:finance_tracker/models/login_response.dart';
 import 'package:finance_tracker/models/user.dart';
 import 'package:finance_tracker/services/token_service.dart';
+import 'package:flutter/material.dart';
 
 class AuthService {
   late final Dio dio;
@@ -30,22 +31,58 @@ class AuthService {
       ),
     );
   }
-
   Future<LoginResponse> login({
     required String email,
     required String password,
   }) async {
-    final response = await dio.post(
-      "/user/login",
-      data: {"email": email, "password": password},
-    );
+    try {
+      final response = await dio.post(
+        "/user/login",
+        data: {"email": email, "password": password},
+      );
 
-    final loginResponse = LoginResponse.fromJson(response.data);
+      debugPrint("STATUS CODE: ${response.statusCode}");
+      debugPrint("RESPONSE DATA: ${response.data}");
 
-    await TokenService().saveToken(loginResponse.token);
+      final loginResponse = LoginResponse.fromJson(response.data);
 
-    return loginResponse;
+      await TokenService().saveToken(loginResponse.token);
+
+      return loginResponse;
+    } on DioException catch (e) {
+      debugPrint("DIO ERROR TYPE: ${e.type}");
+      debugPrint("DIO ERROR MESSAGE: ${e.message}");
+      debugPrint("STATUS CODE: ${e.response?.statusCode}");
+      debugPrint("RESPONSE BODY: ${e.response?.data}");
+
+      rethrow;
+    }
   }
+  // Future<LoginResponse> login({
+  //   required String email,
+  //   required String password,
+  // }) async {
+  //   final response = await dio.post(
+  //     "/user/login",
+  //     data: {"email": email, "password": password},
+  //   );
+
+  //   debugPrint("Status Code: ${response.statusCode}");
+  //   debugPrint("Response Data: ${response.data}");
+  //   final loginResponse = LoginResponse.fromJson(response.data);
+
+  //   debugPrint("Token: ${loginResponse.token}");
+  //   await TokenService().saveToken(loginResponse.token);
+
+  //   return loginResponse;
+  // } on DioException catch (e) {
+  //   print("DIO ERROR TYPE: ${e.type}");
+  //   print("DIO ERROR MESSAGE: ${e.message}");
+  //   print("STATUS CODE: ${e.response?.statusCode}");
+  //   print("RESPONSE BODY: ${e.response?.data}");
+
+  //   rethrow;
+  // }  }
 
   Future<User> register({
     required String firstName,
@@ -56,25 +93,35 @@ class AuthService {
     required String banks,
     required int balance,
   }) async {
-    List<String> bankList = banks
-        .split(",")
-        .map((bank) => bank.trim())
-        .toList();
+    try {
+      List<String> bankList = banks
+          .split(",")
+          .map((bank) => bank.trim())
+          .toList();
 
-    final response = await dio.post(
-      "/user/register",
-      data: {
-        "firstName": firstName,
-        "lastName": lastName,
-        "userEmail": email,
-        "userPassword": password,
-        "username": username,
-        "banks": bankList,
-        "balance": balance,
-      },
-    );
+      final response = await dio.post(
+        "/user/register",
+        data: {
+          "firstName": firstName,
+          "lastName": lastName,
+          "userEmail": email,
+          "userPassword": password,
+          "username": username,
+          "banks": bankList,
+          "balance": balance,
+        },
+      );
+      debugPrint("STATUS CODE $response.statusCode");
+      debugPrint("RESPONSE DATA: ${response.data}");
 
-    return User.fromJson(response.data);
+      return User.fromJson(response.data);
+    } on DioException catch (e) {
+      debugPrint("DIO ERROR TYPE: ${e.type}");
+      debugPrint("DIO ERROR MESSAGE: ${e.message}");
+      debugPrint("STATUS CODE: ${e.response?.statusCode}");
+      debugPrint("RESPONSE BODY: ${e.response?.data}");
+      rethrow;
+    }
   }
 
   Future<User> fetchProfile() async {

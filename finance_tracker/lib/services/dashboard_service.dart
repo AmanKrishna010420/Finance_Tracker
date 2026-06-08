@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:finance_tracker/services/token_service.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class DashboardService {
@@ -64,8 +65,10 @@ class DashboardService {
     required int transactionCategory,
   }) async {
     final now = DateTime.now();
-
-    return await dio.post(
+    debugPrint(
+      "API Called with amount: $amount, type: $transactionType, category: $transactionCategory",
+    );
+    final response = await dio.post(
       "/transaction/computeResponse",
       data: {
         "amount": amount,
@@ -75,5 +78,8 @@ class DashboardService {
         "transactionCategory": transactionCategory,
       },
     );
+    debugPrint("Status Code ${response.statusCode}");
+    debugPrint("Data : ${response.data}");
+    return response;
   }
 }

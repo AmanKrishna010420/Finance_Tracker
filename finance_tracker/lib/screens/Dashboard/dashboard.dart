@@ -21,20 +21,21 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     super.initState();
+    debugPrint("Dashboard init");
 
-    Future.microtask(() {
+    Future.microtask(() async {
       final transactionProvider = Provider.of<TransactionProvider>(
         context,
         listen: false,
       );
 
-      transactionProvider.fetchTransactions();
+      await transactionProvider.fetchTransactions();
 
-      transactionProvider.fetchIncome();
+      await transactionProvider.fetchIncome();
 
-      transactionProvider.fetchExpense();
+      await transactionProvider.fetchExpense();
 
-      transactionProvider.fetchCategoryAnalytics();
+      await transactionProvider.fetchCategoryAnalytics();
     });
   }
 
@@ -261,6 +262,7 @@ class _DashboardState extends State<Dashboard> {
                                 Expanded(
                                   child: ElevatedButton.icon(
                                     onPressed: () {
+                                      debugPrint("Add Income Button Pressed");
                                       showAddIncomeSheet();
                                     },
 
@@ -286,6 +288,7 @@ class _DashboardState extends State<Dashboard> {
                                 Expanded(
                                   child: ElevatedButton.icon(
                                     onPressed: () {
+                                      debugPrint("Add Expense Button Pressed");
                                       showAddExpenseSheet();
                                     },
 
@@ -322,6 +325,7 @@ class _DashboardState extends State<Dashboard> {
                       child: IconButton(
                         onPressed: () async {
                           await authProvider.logout();
+                          context.read<TransactionProvider>().clearData();
 
                           if (!mounted) return;
 
@@ -484,20 +488,21 @@ class _DashboardState extends State<Dashboard> {
                       );
                       return;
                     }
-
                     final transactionProvider =
                         Provider.of<TransactionProvider>(
                           context,
                           listen: false,
                         );
 
+                    debugPrint("Calling income provider with amount: $amount");
                     await transactionProvider.createTransaction(
                       amount: amount,
 
                       transactionType: 1,
 
-                      transactionCategory: 0,
+                      transactionCategory: 6,
                     );
+                    debugPrint("Income added with amount: $amount");
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Income Added")),
                     );
@@ -593,13 +598,18 @@ class _DashboardState extends State<Dashboard> {
                               context,
                               listen: false,
                             );
-
+                        debugPrint(
+                          "Calling expense provider with amount: $amount, category: $selectedCategory",
+                        );
                         await transactionProvider.createTransaction(
                           amount: amount,
 
                           transactionType: 0,
 
                           transactionCategory: selectedCategory,
+                        );
+                        debugPrint(
+                          "Expense added with amount: $amount, category: $selectedCategory",
                         );
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text("Expense Added")),
