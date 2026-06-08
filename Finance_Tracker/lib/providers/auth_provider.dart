@@ -1,14 +1,17 @@
+import 'package:finance_tracker/models/login_response.dart';
 import 'package:finance_tracker/models/user.dart';
 import 'package:finance_tracker/services/auth_service.dart';
+import 'package:finance_tracker/services/token_service.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthProvider extends ChangeNotifier {
   User? currentUser;
+
   final AuthService _authService = AuthService();
 
   bool isLoading = false;
   String? errorMessage;
+
   bool get isLoggedIn => currentUser != null;
 
   Future<bool> login({required String email, required String password}) async {
@@ -16,15 +19,29 @@ class AuthProvider extends ChangeNotifier {
       isLoading = true;
       errorMessage = null;
       notifyListeners();
-      final user = await _authService.login(email: email, password: password);
-      currentUser = user as User?;
-      await savedUserSession();
+      debugPrint("Attempting login for email: $email");
+      debugPrint("STEP 1");
+      final LoginResponse loginResponse = await _authService.login(
+        email: email,
+        password: password,
+      );
+      debugPrint("STEP2");
+      currentUser = loginResponse.user;
+      debugPrint("Step 3");
       isLoading = false;
-      return true;
-    } catch (e) {
-      isLoading = false;
-      errorMessage = "Login failed: ${e.toString()}";
+      debugPrint("Step4");
       notifyListeners();
+      debugPrint("Step 5");
+
+      return true;
+    } catch (e, stackTrace) {
+      isLoading = false;
+      debugPrint("Login failed: $errorMessage");
+      debugPrint("Stack Trace: $stackTrace");
+      errorMessage = e.toString();
+
+      notifyListeners();
+
       return false;
     }
   }
@@ -41,8 +58,10 @@ class AuthProvider extends ChangeNotifier {
     try {
       isLoading = true;
       errorMessage = null;
+
       notifyListeners();
-      final user = await _authService.register(
+      debugPrint("Attempting registration for email: $email");
+      await _authService.register(
         firstName: firstName,
         lastName: lastName,
         email: email,
@@ -51,38 +70,46 @@ class AuthProvider extends ChangeNotifier {
         banks: banks,
         balance: balance,
       );
-      currentUser = user as User?;
-      await savedUserSession();
       isLoading = false;
+
       notifyListeners();
+
       return true;
     } catch (e) {
       isLoading = false;
       errorMessage = e.toString();
+
       notifyListeners();
+
       return false;
     }
   }
 
-  Future<void> savedUserSession() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString("email", currentUser!.email ?? '');
-  }
-
   Future<void> loadUserSession() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? email = prefs.getString("email");
+    try {
+      final hasToken = await TokenService().hasToken();
 
-    if (email != null) {
-      currentUser = User(email: email);
+      if (!hasToken) {
+        currentUser = null;
+        notifyListeners();
+        return;
+      }
+
+      currentUser = await _authService.fetchProfile();
+
+      notifyListeners();
+    } catch (e) {
+      currentUser = null;
+      await TokenService().deleteToken();
       notifyListeners();
     }
   }
 
   Future<void> logout() async {
-    SharedPreferences pref = await SharedPreferences.getInstance();
-    await pref.clear();
+    await _authService.logout();
+
     currentUser = null;
+
     notifyListeners();
   }
 }
